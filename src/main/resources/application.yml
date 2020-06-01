@@ -1,0 +1,12 @@
+server:
+  port: 0
+logging:
+  level:
+    ru.stas: DEBUG
+
+spring:
+  zipkin:
+    service:
+      name: hello-zipkin-wf
+
+
