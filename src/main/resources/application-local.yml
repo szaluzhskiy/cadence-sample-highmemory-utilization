@@ -1,11 +1,5 @@
 server:
   port: 8099
-logging:
-  level:
-    ru.stas: DEBUG
-    com.uber: INFO
-    org.springframework: ERROR
-    ROOT: ERROR
 
 app:
   settings:
@@ -31,9 +25,9 @@ management:
     web.exposure.include: '*'
   metrics.export.prometheus.enabled: true
 
-#spring:
-#  zipkin:
-#    service:
-#      name: hello-zipkin-wf
-
-
+logging:
+  level:
+    ru.stas: DEBUG
+    com.uber: DEBUG
+    org.springframework: ERROR
+    ROOT: ERROR

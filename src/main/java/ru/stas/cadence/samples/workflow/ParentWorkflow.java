@@ -27,7 +27,10 @@ import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.worker.Worker;
 import com.uber.cadence.worker.WorkerOptions;
-import com.uber.cadence.workflow.*;
+import com.uber.cadence.workflow.Async;
+import com.uber.cadence.workflow.Promise;
+import com.uber.cadence.workflow.Workflow;
+import com.uber.cadence.workflow.WorkflowMethod;
 import com.uber.m3.tally.RootScopeBuilder;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.util.Duration;
@@ -42,7 +45,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static ru.stas.cadence.samples.workflow.SampleConstants.*;
+import static ru.stas.cadence.samples.workflow.SampleConstants.DOMAIN;
+import static ru.stas.cadence.samples.workflow.SampleConstants.TASK_LIST_MAIN;
 
 /**
  * Demonstrates a child workflow. Requires a local instance of the Cadence server to be running.
@@ -51,7 +55,6 @@ import static ru.stas.cadence.samples.workflow.SampleConstants.*;
 @Component
 public class ParentWorkflow implements ApplicationRunner {
 
-  @Override
   public void run(ApplicationArguments args) {
     registerDomain();
     startFactory();
@@ -77,8 +80,10 @@ public class ParentWorkflow implements ApplicationRunner {
             TASK_LIST_MAIN, new WorkerOptions.Builder().setMetricsScope(scope).build()
         );
 
-    workerParent.registerWorkflowImplementationTypes(GreetingWorkflowImpl.class);
-    workerParent.registerActivitiesImplementations(new ParentActivitiesImpl());
+    workerParent.registerWorkflowImplementationTypes(ParentWorkflow.GreetingWorkflowImpl.class);
+    workerParent.registerWorkflowImplementationTypes(CancellableWorkflow.GreetingWorkflowImpl.class);
+    workerParent.registerActivitiesImplementations(new ParentWorkflow.ParentActivitiesImpl());
+    workerParent.registerActivitiesImplementations(new CancellableWorkflow.GreetingActivitiesImpl());
 
     // Start listening to the workflow and activity task lists.
     factory.start();

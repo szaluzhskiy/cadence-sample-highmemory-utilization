@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.stas.cadence.samples.propagator.TracingContextPropagator;
+import ru.stas.cadence.samples.workflow.CancellableWorkflow;
 import ru.stas.cadence.samples.workflow.ParentWorkflow;
 import ru.stas.cadence.samples.workflow.SampleConstants;
 
@@ -34,11 +35,22 @@ public class WorkflowController {
   private void startWF() {
     log.debug("start wf");
     WorkflowOptions options = new WorkflowOptions.Builder()
-        .setExecutionStartToCloseTimeout(Duration.ofSeconds(5))
+        .setExecutionStartToCloseTimeout(Duration.ofSeconds(60))
         .setTaskList(TASK_LIST_MAIN)
         .setContextPropagators(Collections.singletonList(new TracingContextPropagator()))
         .build();
     ParentWorkflow.GreetingWorkflow parentWorkflow = workflowClient.newWorkflowStub(ParentWorkflow.GreetingWorkflow.class, options);
-    WorkflowExecution we = WorkflowClient.start(parentWorkflow::getGreeting, "World");
+    WorkflowExecution we = WorkflowClient.start(parentWorkflow::getGreeting, "NewWorld");
+  }
+
+  @GetMapping("/start/cancellable/wf")
+  private void startCancallable() {
+    log.debug("start wf cancellable");
+    WorkflowOptions options = new WorkflowOptions.Builder()
+        .setExecutionStartToCloseTimeout(Duration.ofSeconds(600))
+        .setTaskList(TASK_LIST_MAIN)
+        .build();
+    CancellableWorkflow.GreetingWorkflow workflow = workflowClient.newWorkflowStub(CancellableWorkflow.GreetingWorkflow.class, options);
+    WorkflowExecution we = WorkflowClient.start(workflow::getGreeting, "NewWorld");
   }
 }
