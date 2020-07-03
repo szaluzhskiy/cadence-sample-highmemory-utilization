@@ -27,7 +27,7 @@ management:
 
 logging:
   level:
-    ru.stas: DEBUG
-    com.uber: DEBUG
+    ru.stas: INFO
+    com.uber: INFO
     org.springframework: ERROR
     ROOT: ERROR

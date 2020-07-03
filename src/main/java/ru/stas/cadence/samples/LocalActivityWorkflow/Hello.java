@@ -9,8 +9,7 @@ import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.worker.Worker;
-import com.uber.cadence.workflow.Workflow;
-import com.uber.cadence.workflow.WorkflowMethod;
+import com.uber.cadence.workflow.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -21,6 +20,8 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Slf4j
 @Component
@@ -68,37 +69,50 @@ public class Hello {
     public String getGreeting(String name) {
       RetryOptions ro = new RetryOptions.Builder()
           .setInitialInterval(Duration.ofSeconds(1))
-          .setExpiration(Duration.ofSeconds(8))
-          .setMaximumAttempts(2)
+          .setExpiration(Duration.ofSeconds(5))
+          .setMaximumAttempts(1)
           .build();
       LocalActivityOptions lao = new LocalActivityOptions.Builder()
-          .setScheduleToCloseTimeout(Duration.ofSeconds(8))
+          .setScheduleToCloseTimeout(Duration.ofSeconds(5))
           .setRetryOptions(ro)
           .build();
       activities =
           Workflow.newLocalActivityStub(Hello.GreetingActivities.class, lao);
 
-     activities.composeGreeting("1");
-      return "";
+      try {
+        CompletablePromise<String> result = Workflow.newPromise();
+        CancellationScope scope =
+            Workflow.newCancellationScope(
+                () -> {
+                  result.completeFrom(Async.function(activities::composeGreeting,"composeGreeting"));
+                });
+        scope.run();
+       return result.get(5, TimeUnit.SECONDS);
+      } catch (TimeoutException e) {
+        System.out.println("TimeoutException");
+        throw new RuntimeException(e);
+      }
     }
   }
 
   static class GreetingActivitiesImpl implements GreetingActivities {
     @Override
     public String composeGreeting(String greeting) {
+        System.out.println("Activity composeGreeting. Started");
         CloseableHttpClient httpclient = HttpClients.createDefault();
 
-      HttpGet get = new HttpGet("http://127.0.0.1:8099/longoperation");
+        HttpGet get = new HttpGet("http://127.0.0.1:8099/longoperation");
         try {
           System.out.println("Activity composeGreeting. Send long request");
           CloseableHttpResponse response = httpclient.execute(get);
-          response.getStatusLine();
+          System.out.println("Activity composeGreeting. Status " + response.getStatusLine());
           System.out.println("Activity composeGreeting. Get response");
         } catch (IOException e) {
           System.out.println("Activity composeGreeting. Error");
           throw new RuntimeException(e);
         }
-      return greeting + "!";
+      System.out.println("Activity composeGreeting. Completed");
+        return greeting + "!";
     }
   }
 

@@ -2,7 +2,7 @@ server:
   port: 8099
 logging:
   level:
-    ru.stas: DEBUG
+    ru.stas: INFO
     com.uber: INFO
     org.springframework: ERROR
     ROOT: ERROR
