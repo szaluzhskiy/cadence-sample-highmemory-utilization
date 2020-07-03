@@ -9,7 +9,7 @@ public class ActivityController {
   private void longOperation() {
     System.out.println("ActivityController. Start long operation");
     try {
-      Thread.sleep(11 * 1000);
+      Thread.sleep(20 * 1000);
     } catch (InterruptedException e) {
       e.printStackTrace();
       System.out.println("ActivityController. Interrupted exception");

@@ -29,5 +29,5 @@ logging:
   level:
     ru.stas: INFO
     com.uber: INFO
-    org.springframework: ERROR
-    ROOT: ERROR
+    org.springframework: INFO
+    ROOT: INFO

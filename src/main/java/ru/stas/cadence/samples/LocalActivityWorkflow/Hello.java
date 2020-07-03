@@ -3,25 +3,15 @@ package ru.stas.cadence.samples.LocalActivityWorkflow;
 import com.uber.cadence.DomainAlreadyExistsError;
 import com.uber.cadence.RegisterDomainRequest;
 import com.uber.cadence.activity.ActivityMethod;
-import com.uber.cadence.activity.LocalActivityOptions;
 import com.uber.cadence.client.WorkflowClient;
-import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.worker.Worker;
-import com.uber.cadence.workflow.*;
+import com.uber.cadence.workflow.Workflow;
+import com.uber.cadence.workflow.WorkflowMethod;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.apache.thrift.TException;
 import org.springframework.stereotype.Component;
-
-import java.io.IOException;
-import java.time.Duration;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 @Slf4j
 @Component
@@ -49,7 +39,7 @@ public class Hello {
    * Activity interface is just a POJO.
    */
   public interface GreetingActivities {
-    @ActivityMethod(scheduleToCloseTimeoutSeconds = 10)
+    @ActivityMethod(scheduleToCloseTimeoutSeconds = 8)
     String composeGreeting(String greeting);
   }
 
@@ -67,30 +57,28 @@ public class Hello {
 
     @Override
     public String getGreeting(String name) {
-      RetryOptions ro = new RetryOptions.Builder()
-          .setInitialInterval(Duration.ofSeconds(1))
-          .setExpiration(Duration.ofSeconds(5))
-          .setMaximumAttempts(1)
+   /* RetryOptions ro = new RetryOptions.Builder()
+        .setInitialInterval(Duration.ofSeconds(1))
+        .setMaximumAttempts(100000)
+          .setDoNotRetry(DoNotRetryOnTimeoutException.class)
           .build();
       LocalActivityOptions lao = new LocalActivityOptions.Builder()
-          .setScheduleToCloseTimeout(Duration.ofSeconds(5))
           .setRetryOptions(ro)
-          .build();
+          .build();*/
       activities =
-          Workflow.newLocalActivityStub(Hello.GreetingActivities.class, lao);
-
+          Workflow.newLocalActivityStub(Hello.GreetingActivities.class);
+ /*     CompletablePromise<String> result = Workflow.newPromise();
+      CancellationScope scope =
+          Workflow.newCancellationScope(
+              () -> {
+                result.completeFrom(Async.function(activities::composeGreeting,"composeGreeting"));
+              });
+      scope.run();*/
       try {
-        CompletablePromise<String> result = Workflow.newPromise();
-        CancellationScope scope =
-            Workflow.newCancellationScope(
-                () -> {
-                  result.completeFrom(Async.function(activities::composeGreeting,"composeGreeting"));
-                });
-        scope.run();
-       return result.get(5, TimeUnit.SECONDS);
-      } catch (TimeoutException e) {
-        System.out.println("TimeoutException");
-        throw new RuntimeException(e);
+        return activities.composeGreeting("1");
+      } catch (RuntimeException e) {
+        System.out.println("WE GOT RuntimeException");
+        return "FUCK";
       }
     }
   }
@@ -98,21 +86,27 @@ public class Hello {
   static class GreetingActivitiesImpl implements GreetingActivities {
     @Override
     public String composeGreeting(String greeting) {
-        System.out.println("Activity composeGreeting. Started");
+      /*  System.out.println("Activity composeGreeting. Started");
         CloseableHttpClient httpclient = HttpClients.createDefault();
 
         HttpGet get = new HttpGet("http://127.0.0.1:8099/longoperation");
         try {
-          System.out.println("Activity composeGreeting. Send long request");
-          CloseableHttpResponse response = httpclient.execute(get);
-          System.out.println("Activity composeGreeting. Status " + response.getStatusLine());
-          System.out.println("Activity composeGreeting. Get response");
-        } catch (IOException e) {
+          System.out.println("Activity composeGreeting. Send long request");*/
+      try {
+        Thread.sleep(9000);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+      throw new DoNotRetryOnTimeoutException(new RuntimeException("BOOM2"));
+          //CloseableHttpResponse response = httpclient.execute(get);
+         // System.out.println("Activity composeGreeting. Status " + response.getStatusLine());
+          //System.out.println("Activity composeGreeting. Get response");
+    /*    } catch (IOException e) {
           System.out.println("Activity composeGreeting. Error");
           throw new RuntimeException(e);
         }
-      System.out.println("Activity composeGreeting. Completed");
-        return greeting + "!";
+      System.out.println("Activity composeGreeting. Completed");Completed
+        return greeting + "!";*/
     }
   }
 
@@ -148,7 +142,6 @@ public class Hello {
    // Worker.Factory factory = new Worker.Factory(DOMAIN, fo);
     Worker.Factory factory = new Worker.Factory(DOMAIN);
     Worker worker = factory.newWorker(TASK_LIST);
-
 
     // Workflows are stateful. So you need a type to create instances.
     worker.registerWorkflowImplementationTypes(Hello.GreetingWorkflowImpl.class);
