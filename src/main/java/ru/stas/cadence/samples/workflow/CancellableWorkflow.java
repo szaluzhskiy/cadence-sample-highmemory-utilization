@@ -29,7 +29,7 @@ public class CancellableWorkflow {
     /**
      * @return greeting string
      */
-    @WorkflowMethod(executionStartToCloseTimeoutSeconds = 240, taskList = TASK_LIST)
+    @WorkflowMethod(executionStartToCloseTimeoutSeconds = 240000, taskList = TASK_LIST)
     String getGreeting(String name);
   }
 
@@ -63,8 +63,9 @@ public class CancellableWorkflow {
          activityPromise.completeFrom(Async.function(activities::composeGreeting, "Hello", name));
         });
        scope.run(); // returns immediately as the activities are invoked asynchronously
+    //  Async.function(activities::composeGreetingOuter, "composeGreetingOuter");
       try {
-        return activityPromise.get(10, TimeUnit.SECONDS);
+        activityPromise.get(5, TimeUnit.SECONDS);
       } catch (TimeoutException e) {
         scope.cancel();
         System.out.println("Performing compensation steps");
@@ -81,14 +82,14 @@ public class CancellableWorkflow {
 
         HttpPost post = new HttpPost("http://127.0.0.1:8099/longoperation");
         try {
-          System.out.println("Send long request");
+          System.out.println("Activity composeGreeting. Send long request");
           httpclient.execute(post);
         } catch (IOException e) {
-          System.out.println("error");
+          System.out.println("Activity composeGreeting. Error");
           throw new RuntimeException(e);
         }
       } catch (CancellationException e) {
-        System.out.println("composeGreeting cancelled");
+        System.out.println("Activity composeGreeting. Cancelled");
         throw e;
       }
       return greeting + " " + name + "!";

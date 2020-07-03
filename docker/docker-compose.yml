@@ -15,7 +15,7 @@ services:
       - "7934:7934"
       - "7935:7935"
       - "7939:7939"
-      - "8005:8005"
+      - "8006:8005"
     volumes:
       - ./cadence:/config/dynamicconfig_local
       - cadence_data:/cadence
