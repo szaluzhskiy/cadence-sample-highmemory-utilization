@@ -1,48 +1,29 @@
+# my global config
 global:
-  scrape_interval:     15s
-  evaluation_interval: 15s
+  scrape_interval:     15s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
+  evaluation_interval: 15s # Evaluate rules every 15 seconds. The default is every 1 minute.
+  # scrape_timeout is set to the global default (10s).
 
-  # Attach these labels to any time series or alerts when communicating with
-  # external systems (federation, remote storage, Alertmanager).
-  external_labels:
-    monitor: 'docker-host-alpha'
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
 
-# Load and evaluate rules in this file every 'evaluation_interval' seconds.
+# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
 rule_files:
-  - "alert.rules"
+# - "first_rules.yml"
+# - "second_rules.yml"
 
-# A scrape configuration containing exactly one endpoint to scrape.
+# A scrape configuration containing exactly one endpoint to scrape:
+# Here it's Prometheus itself.
 scrape_configs:
-  - job_name: 'nodeexporter'
-    scrape_interval: 5s
-    static_configs:
-      - targets: ['nodeexporter:9100']
-
-  - job_name: 'cadvisor'
-    scrape_interval: 5s
-    static_configs:
-      - targets: ['cadvisor:8080']
-
+  # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
   - job_name: 'prometheus'
-    scrape_interval: 10s
-    static_configs:
-      - targets: ['localhost:9090', 'localhost:']
 
-  #  - job_name: 'hello-child-application'
-  #    metrics_path: '/actuator/prometheus'
-  #    scrape_interval: 5s
-  #    static_configs:
-  ##      - targets: ['host.docker.internal:8092']
-  #      - targets: ['127.0.0.1:8092']
+    # metrics_path defaults to '/metrics'
+    # scheme defaults to 'http'.
 
-  - job_name: 'hello-zipkin-spring-boot'
-    metrics_path: '/actuator/prometheus'
-    scrape_interval: 5s
     static_configs:
-      - targets: ['127.0.0.1:8099']
-
-  - job_name: 'cadence'
-    metrics_path: '/metrics'
-    scrape_interval: 5s
-    static_configs:
-      - targets: ['127.0.0.1:8005']
+      - targets: ['cadence-frontend:8501','cadence-matching:8502','cadence-history:8503','cadence-worker:8504']

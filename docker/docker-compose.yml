@@ -8,41 +8,73 @@ services:
     image: cassandra:3.11
     ports:
       - "9042:9042"
-  cadence:
+  cadence-frontend:
     image: ubercadence/server:master-auto-setup
     ports:
       - "7933:7933"
-      - "7934:7934"
-      - "7935:7935"
-      - "7939:7939"
-      - "8006:8005"
-    volumes:
-      - ./cadence:/config/dynamicconfig_local
-      - cadence_data:/cadence
     environment:
       - "CASSANDRA_SEEDS=cassandra"
-      - "DYNAMIC_CONFIG_FILE_PATH=/config/dynamicconfig_local/development_local.yaml"
-      - "PROMETHEUS_ENDPOINT=:8005"
+      - "RINGPOP_SEEDS=cadence-frontend:7933,cadence-matching:7935,cadence-histroy:7934,cadence-worker:7939"
+      - "DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development.yaml"
+      - "PROMETHEUS_ENDPOINT=cadence-frontend:8501"
+      - "SERVICES=frontend"
     depends_on:
       - cassandra
-  cadence-web:
-    image: ubercadence/web:3.4.1
+  cadence-history:
+    image: ubercadence/server:master-auto-setup
+    ports:
+      - "7934:7934"
     environment:
-      - "CADENCE_TCHANNEL_PEERS=cadence:7933"
+      - "CASSANDRA_SEEDS=cassandra"
+      - "RINGPOP_SEEDS=cadence-frontend:7933,cadence-matching:7935,cadence-histroy:7934,cadence-worker:7939"
+      - "DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development.yaml"
+      - "PROMETHEUS_ENDPOINT=cadence-history:8503"
+      - "SERVICES=history"
+      - "SKIP_SCHEMA_SETUP=true"
+    depends_on:
+      - cadence-frontend
+  cadence-worker:
+    image: ubercadence/server:master-auto-setup
+    ports:
+      - "7939:7939"
+    environment:
+      - "CASSANDRA_SEEDS=cassandra"
+      - "RINGPOP_SEEDS=cadence-frontend:7933,cadence-matching:7935,cadence-histroy:7934,cadence-worker:7939"
+      - "DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development.yaml"
+      - "PROMETHEUS_ENDPOINT=cadence-worker:8504"
+      - "SERVICES=worker"
+      - "SKIP_SCHEMA_SETUP=true"
+    depends_on:
+      - cadence-frontend
+  cadence-matching:
+    image: ubercadence/server:master-auto-setup
+    ports:
+      - "7935:7935"
+    environment:
+      - "CASSANDRA_SEEDS=cassandra"
+      - "RINGPOP_SEEDS=cadence-frontend:7933,cadence-matching:7935,cadence-histroy:7934,cadence-worker:7939"
+      - "DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development.yaml"
+      - "PROMETHEUS_ENDPOINT=cadence-matching:8502"
+      - "SERVICES=matching"
+      - "SKIP_SCHEMA_SETUP=true"
+    depends_on:
+      - cadence-frontend
+  cadence-web:
+    image: ubercadence/web:latest
+    environment:
+      - "CADENCE_TCHANNEL_PEERS=cadence-frontend:7933"
     ports:
       - "8088:8088"
     depends_on:
-      - cadence
-
+      - cadence-frontend
   prometheus:
     image: prom/prometheus:v2.18.1
     container_name: prometheus
     volumes:
-      - ./prometheus:/etc/prometheus
-      - prometheus_data:/prometheus
+      - ./prometheus/:/etc/prometheus/
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
+      - '--config.file=/etc/prometheus/prometheus.yaml'
+      #      - '--storage.tsdb.path=/prometheus'
       - '--web.console.libraries=/etc/prometheus/console_libraries'
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--storage.tsdb.retention.time=200h'
@@ -50,10 +82,8 @@ services:
     restart: unless-stopped
     ports:
       - "9090:9090"
-    network_mode: host
     labels:
       org.label-schema.group: "monitoring"
-
   grafana:
     image: grafana/grafana:6.7.3
     container_name: grafana

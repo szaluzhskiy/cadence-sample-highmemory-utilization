@@ -9,8 +9,8 @@
         <version>2.2.4.RELEASE</version>
     </parent>
     <groupId>ru.stas.cadence.samples</groupId>
-    <artifactId>hello-zipkin-spring-boot</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <artifactId>cadence-sample-highmemory-utilization</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
     <dependencies>
         <dependency>
             <groupId>com.uber.cadence</groupId>
