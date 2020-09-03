@@ -1,5 +1,5 @@
 server:
-  port: 8099
+  port: 8097
 logging:
   level:
     ru.stas: INFO
